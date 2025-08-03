@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Избранное</title>
+    <style>
+        :root {
+            --bg-color: #000000;
+            --form-bg: #000000;
+            --message-bg: #1C1C1E;
+            --text-color: #F5F5F5;
+            --link-color: #0A84FF;
+            --border-color: #2a2a2c;
+            --input-bg: #2C2C2E;
+            
+            --icon-color-normal: #8A8A8E;    /* Серый цвет для иконок */
+            --icon-color-active: #F5F5F5;    /* БЕЛЫЙ цвет для активной иконки отправки и при наведении */
+
+            --timestamp-color: #8A8A8E;
+            --scroll-thumb-color: #444444;
+            --scroll-track-color: transparent;
+        }
+
+        * { box-sizing: border-box; }
+
+        html {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        #messages-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            padding-top: 25px;
+        }
+        #messages-container::-webkit-scrollbar { width: 8px; }
+        #messages-container::-webkit-scrollbar-track { background: var(--scroll-track-color); }
+        #messages-container::-webkit-scrollbar-thumb { background: var(--scroll-thumb-color); border-radius: 4px; }
+
+        #loading-indicator { text-align: center; color: var(--timestamp-color); padding: 20px; }
+
+        .message {
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            background-color: var(--message-bg);
+            border: 1px solid var(--border-color);
+            margin-left: auto;
+            box-shadow: none;
+            display: flex;
+            flex-direction: column;
+        }
+        .message .text { margin: 0 0 5px 0; white-space: pre-wrap; line-height: 1.45; }
+        .message .meta { font-size: 0.75rem; color: var(--timestamp-color); text-align: right; user-select: none;}
+        .message .file-link { margin-bottom: 5px;}
+        .message .file-link a { color: var(--link-color); font-weight: 500; text-decoration: none; }
+        .message .file-link a:hover { text-decoration: underline; }
+        .message img.preview { max-width: 100%; border-radius: 12px; margin-top: 5px; }
+
+        #form-container {
+            padding: 10px 15px;
+            flex-shrink: 0;
+            background-color: var(--form-bg);
+            border-top: 1px solid var(--border-color);
+        }
+
+        form { display: flex; align-items: center; gap: 10px; }
+        
+        textarea {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border-radius: 18px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            resize: none;
+            min-height: 40px;
+            max-height: 150px;
+            font-size: 1rem;
+            line-height: 1.4;
+            border: none;
+        }
+        textarea:focus { outline: none; }
+        
+        button, #file-input-label {
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            cursor: pointer;
+            padding: 8px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--icon-color-normal);
+            transition: color 0.2s;
+        }
+        button:hover, #file-input-label:hover {
+            color: var(--icon-color-active);
+            background: transparent;
+        }
+
+        /* ИЗМЕНЕНО: Активная кнопка отправки теперь БЕЛАЯ */
+        button[type="submit"] {
+            color: var(--icon-color-active);
+        }
+
+        button:disabled {
+            color: var(--icon-color-normal) !important;
+            opacity: 0.4;
+            cursor: not-allowed;
+            background: transparent !important;
+        }
+        input[type="file"] { display: none; }
+
+        #error-log {
+            color: #ff453a;
+            font-size: 0.9rem;
+            padding-bottom: 10px;
+            display: none;
+        }
+        #file-preview-container {
+            font-size: 0.9rem;
+            padding-bottom: 10px;
+            color: var(--timestamp-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="messages-container">
+            <div id="loading-indicator">Загрузка...</div>
+        </div>
+
+        <div id="form-container">
+            <div id="error-log"></div>
+            <div id="file-preview-container"></div>
+            <form id="messageForm" autocomplete="off">
+                <label id="file-input-label" for="file" title="Прикрепить файл">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.49"></path></svg>
+                </label>
+                <input type="file" name="file" id="file"/>
+                <textarea name="message" placeholder="Сообщение" rows="1"></textarea>
+                <button type="submit" title="Отправить (Ctrl+Enter)" disabled>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Javascript не менялся
+        document.addEventListener('DOMContentLoaded', () => {
+            const messageForm = document.getElementById('messageForm');
+            const messagesContainer = document.getElementById('messages-container');
+            const errorLog = document.getElementById('error-log');
+            const fileInput = document.getElementById('file');
+            const filePreviewContainer = document.getElementById('file-preview-container');
+            const messageTextarea = document.querySelector('textarea[name="message"]');
+            const submitButton = document.querySelector('button[type="submit"]');
+            let loadingIndicator = document.getElementById('loading-indicator');
+
+            const escapeHTML = (str) => {
+                const p = document.createElement('p');
+                p.textContent = str;
+                return p.innerHTML;
+            };
+
+            const scrollToBottom = () => {
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            };
+
+            const updateSubmitButtonState = () => {
+                const hasText = messageTextarea.value.trim().length > 0;
+                const hasFile = fileInput.files.length > 0;
+                submitButton.disabled = !hasText && !hasFile;
+            };
+
+            const createMessageElement = (msg) => {
+                const isImage = msg.file && /\.(jpe?g|png|gif|webp|svg)$/i.test(msg.originalFilename);
+                const fileLinkHTML = msg.file && !isImage ? `<div class="file-link"><a href="uploads/${msg.file}" target="_blank" download="${escapeHTML(msg.originalFilename)}">${escapeHTML(msg.originalFilename)}</a></div>` : '';
+                const imagePreviewHTML = isImage ? `<a href="uploads/${msg.file}" target="_blank"><img src="uploads/${msg.file}" class="preview" alt="Изображение"></a>` : '';
+                const formattedDate = new Date(msg.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+                const textHTML = msg.text ? `<div class="text">${escapeHTML(msg.text)}</div>` : '';
+
+                const div = document.createElement('div');
+                div.className = 'message';
+                div.innerHTML = `
+                    ${textHTML}
+                    ${imagePreviewHTML}
+                    ${fileLinkHTML}
+                    <div class="meta">${formattedDate}</div>
+                `;
+                return div;
+            };
+
+            const appendMessage = (msg) => {
+                if(loadingIndicator) {
+                    loadingIndicator.remove();
+                    loadingIndicator = null;
+                }
+                messagesContainer.appendChild(createMessageElement(msg));
+            }
+
+            const loadMessages = async () => {
+                try {
+                    const response = await fetch('messages.php?t=' + Date.now());
+                    if (!response.ok) throw new Error(`Ошибка сети: ${response.statusText}`);
+                    const messages = await response.json();
+
+                    if(loadingIndicator) {
+                        loadingIndicator.remove();
+                        loadingIndicator = null;
+                    }
+                    
+                    if (messages.length === 0) {
+                        const noMsgDiv = document.createElement('div');
+                        noMsgDiv.id = 'loading-indicator';
+                        noMsgDiv.textContent = 'Сообщений пока нет.';
+                        messagesContainer.appendChild(noMsgDiv);
+                        loadingIndicator = noMsgDiv;
+                        return;
+                    }
+
+                    const fragment = document.createDocumentFragment();
+                    messages.forEach(msg => fragment.appendChild(createMessageElement(msg)));
+                    messagesContainer.appendChild(fragment);
+
+                    requestAnimationFrame(scrollToBottom);
+
+                } catch (error) {
+                    console.error('Пока что здесь пусто :)', error);
+                    if(loadingIndicator) {
+                         loadingIndicator.textContent = 'Пока что здесть пусто :)';
+                    }
+                }
+            };
+
+            messageForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                const formData = new FormData(messageForm);
+                const originalButtonContent = submitButton.innerHTML;
+                
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><style>.spinner_V8m1{transform-origin:center;animation:spinner_zKoa 2s linear infinite}.spinner_V8m1 circle{stroke-linecap:round;animation:spinner_YpZS 1.5s ease-in-out infinite}@keyframes spinner_zKoa{100%{transform:rotate(360deg)}}@keyframes spinner_YpZS{0%{stroke-dasharray:0 150;stroke-dashoffset:0}47.5%{stroke-dasharray:42 150;stroke-dashoffset:-16}95%,100%{stroke-dasharray:42 150;stroke-dashoffset:-59}}</style><g class="spinner_V8m1"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="3"></circle></g></svg>';
+                errorLog.style.display = 'none';
+
+                try {
+                    const response = await fetch('upload.php', { method: 'POST', body: formData });
+                    const result = await response.json();
+
+                    if (!response.ok) throw new Error(result.error || 'Неизвестная ошибка сервера');
+
+                    appendMessage(result);
+                    scrollToBottom();
+
+                    messageForm.reset();
+                    filePreviewContainer.innerHTML = '';
+                    messageTextarea.style.height = 'auto';
+
+                } catch (error) {
+                    errorLog.textContent = `Ошибка: ${error.message}`;
+                    errorLog.style.display = 'block';
+                } finally {
+                    submitButton.innerHTML = originalButtonContent;
+                    updateSubmitButtonState();
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length > 0) {
+                    filePreviewContainer.innerHTML = `<span>Прикреплен: ${escapeHTML(fileInput.files[0].name)}</span>`;
+                    messageTextarea.focus();
+                } else {
+                    filePreviewContainer.innerHTML = '';
+                }
+                updateSubmitButtonState();
+            });
+
+            messageTextarea.addEventListener('input', () => {
+                messageTextarea.style.height = 'auto';
+                messageTextarea.style.height = `${messageTextarea.scrollHeight}px`;
+                updateSubmitButtonState();
+            });
+            
+            messageTextarea.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    if (!submitButton.disabled) {
+                        messageForm.requestSubmit();
+                    }
+                }
+            });
+
+            updateSubmitButtonState();
+            loadMessages();
+        });
+    </script>
+</body>
+</html>
